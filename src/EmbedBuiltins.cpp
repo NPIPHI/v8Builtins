@@ -2,14 +2,11 @@
 // Created by 16182 on 12/6/2020.
 //
 
-#include <chrono>
-#include "EmbedBuiltins.h"
-#include "../log.h"
-#include "../v8-runtime/v8Runtime.h"
-#include "Fetch.h"
-#include "../websocket-server/Message.h"
-#include "../websocket-server/Websocket.h"
-#include "../live-server/LiveServer.h"
+#include "../include/v8Builtins/EmbedBuiltins.h"
+#include "log.h"
+#include <v8Core/v8Runtime.h>
+#include <AndroidWebsocket/Message.h>
+#include <AndroidWebsocket/Websocket.h>
 
 //TODO find a more elegant solution
 struct {
@@ -153,20 +150,6 @@ void v8ClearInterval(const v8::FunctionCallbackInfo<v8::Value> & values){
     }
 }
 
-void v8Fetch(const v8::FunctionCallbackInfo<v8::Value> & values) {
-    assert(values.Length() == 1 && values[0]->IsString() && "expects one string argument, only supports get requests");
-
-    auto isolate = values.GetIsolate();
-    auto context = isolate->GetCurrentContext();
-    auto persistent_context = std::make_shared<v8::Persistent<v8::Context>>(isolate, context);
-
-    v8::String::Utf8Value str(isolate, values[0]);
-    auto resolver = v8::Promise::Resolver::New(context).ToLocalChecked();
-    auto promise = std::make_shared<v8::Persistent<v8::Promise::Resolver>>(isolate, resolver);
-    Fetch::fetch((v8Runtime*) values.Data().As<v8::External>()->Value(), persistent_context, promise, *str);
-    values.GetReturnValue().Set(resolver);
-}
-
 void v8UTF8Decode(const v8::FunctionCallbackInfo<v8::Value> & values) {
     assert(values.Length() == 1 && values[0]->IsArrayBuffer() && "expects one array buffer");
 
@@ -248,18 +231,18 @@ void v8AttachWs(const v8::FunctionCallbackInfo<v8::Value> & values){
         }
     }).detach();
 }
-
-void v8Load(const v8::FunctionCallbackInfo<v8::Value> & values){
-    assert(values.Length() == 2 && values[0]->IsString() && values[1]->IsInt32() && "takes an address and a port");
-    auto runtime = (v8Runtime*)values.Data().As<v8::External>()->Value();
-    auto isolate = values.GetIsolate();
-    auto utf_addr = v8::String::Utf8Value(isolate, values[0].As<v8::String>());
-    std::string addr{*utf_addr, *utf_addr + utf_addr.length()};
-    int port = values[1].As<v8::Int32>()->Value();
-    runtime->post_task([=]{
-        LiveServer::load_http(runtime, addr, port);
-    });
-}
+//
+//void v8Load(const v8::FunctionCallbackInfo<v8::Value> & values){
+//    assert(values.Length() == 2 && values[0]->IsString() && values[1]->IsInt32() && "takes an address and a port");
+//    auto runtime = (v8Runtime*)values.Data().As<v8::External>()->Value();
+//    auto isolate = values.GetIsolate();
+//    auto utf_addr = v8::String::Utf8Value(isolate, values[0].As<v8::String>());
+//    std::string addr{*utf_addr, *utf_addr + utf_addr.length()};
+//    int port = values[1].As<v8::Int32>()->Value();
+//    runtime->post_task([=]{
+//        LiveServer::load_http(runtime, addr, port);
+//    });
+//}
 
 
 void set_global_func(v8::Local<v8::Context> context, const char * name, v8::FunctionCallback function, void * data, bool has_side_effect = true){
@@ -268,7 +251,7 @@ void set_global_func(v8::Local<v8::Context> context, const char * name, v8::Func
             v8::Function::New(context, function, v8::External::New(context->GetIsolate(), data),0, v8::ConstructorBehavior::kAllow, has_side_effect ? v8::SideEffectType::kHasSideEffect : v8::SideEffectType::kHasNoSideEffect).ToLocalChecked()).Check();
 }
 
-void set_context_builtins(v8Runtime *runtime) {
+void builtins::set_context_builtins(v8Runtime *runtime) {
     auto data = runtime;
     auto local_context = runtime->context()->Get(runtime->isolate);
     set_global_func(local_context, "cppLog", v8Log, data);
@@ -279,9 +262,8 @@ void set_context_builtins(v8Runtime *runtime) {
     set_global_func(local_context, "cppClearTimeout", v8ClearTimeout, data);
     set_global_func(local_context, "cppSetInterval", v8SetInterval, data);
     set_global_func(local_context, "cppClearInterval", v8ClearInterval, data);
-    set_global_func(local_context, "cppFetch", v8Fetch, data);
     set_global_func(local_context, "cppUTF8Decode", v8UTF8Decode, data);
     set_global_func(local_context, "cppPerfNow", v8PerfNow, data);
     set_global_func(local_context, "cppAttachWs", v8AttachWs, data);
-    set_global_func(local_context, "cppLoad", v8Load, data);
+//    set_global_func(local_context, "cppLoad", v8Load, data);
 }
