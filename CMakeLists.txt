@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.4)
 
-add_library(v8Builtins include/v8Builtins/EmbedBuiltins.h src/EmbedBuiltins.cpp src/log.h)
+add_library(v8Builtins include/v8Builtins/EmbedBuiltins.h src/EmbedBuiltins.cpp src/log.h src/glue.h)
 
 add_dependencies(v8Builtins v8Core AndriodWebsocket)
 

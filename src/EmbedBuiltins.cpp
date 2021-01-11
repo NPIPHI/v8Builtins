@@ -7,6 +7,7 @@
 #include <v8Core/v8Runtime.h>
 #include <AndroidWebsocket/Message.h>
 #include <AndroidWebsocket/Websocket.h>
+#include "glue.h"
 
 //TODO find a more elegant solution
 struct {
@@ -265,5 +266,6 @@ void builtins::set_context_builtins(v8Runtime *runtime) {
     set_global_func(local_context, "cppUTF8Decode", v8UTF8Decode, data);
     set_global_func(local_context, "cppPerfNow", v8PerfNow, data);
     set_global_func(local_context, "cppAttachWs", v8AttachWs, data);
+    runtime->add_script(glue_code, "__embedded__glue.js");
 //    set_global_func(local_context, "cppLoad", v8Load, data);
 }
